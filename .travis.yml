@@ -1,46 +1,40 @@
-sudo: required
+sudo: false
 
 language: ruby
 
 rvm:
   - 2.3.1
 
-services:
-  - docker
-
-cache: bundler
+cache:
+  bundler: true
+  directories:
+    - node_modules
+    - travis_phantomjs
 
 gemfile:
   - spec/dummy/Gemfile
 
-bundler_args: "--without development production --quiet"
-
 env:
-  - export RAILS_ENV=test DRIVER=selenium_chrome
+  - RAILS_ENV=test ENABLE_TURBOLINKS_5=TRUE
 
 before_install:
-  - sudo apt-get update
-  - sudo apt-get install -y xvfb libappindicator1 fonts-liberation
-  - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-  - sudo dpkg -i google-chrome*.deb
+  - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen scn 1600x1200x16"
+  - export PATH=$PWD/travis_phantomjs/phantomjs-2.1.1-linux-x86_64/bin:$PATH
+  - wget https://github.com/Medium/phantomjs/releases/download/v2.1.1/phantomjs-2.1.1-linux-x86_64.tar.bz2 -O $PWD/travis-phantomjs/phantomjs-2.0.0-ubuntu-12.04.tar.bz2
+  - tar -xvf $PWD/travis_phantomjs/phantomjs-2.1.1-linux-x86_64.tar.bz2 -C $PWD/travis_phantomjs
+  - export PATH=$PWD/travis_phantomjs:$PATH
 
 install:
-  - rm -rf ~/.nvm && git clone https://github.com/creationix/nvm.git ~/.nvm && (cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`) && source ~/.nvm/nvm.sh && nvm install 5.10.0
-  - npm install -g npm
-  - "phantomjs --version"
-  - "npm install phantomjs-prebuilt"
-  - "phantomjs --version"
-  - gem install bundler
-  - bundle install
-  - ENABLE_TURBOLINKS_5=TRUE bundle install
+  - nvm install 5.10.0
+  - npm config set spin false
   - npm install
+  - bundle install
   - rake dummy_apps
   - rake examples
   - rake node_package
 
 before_script:
   - "export DISPLAY=:99"
-  - Xvfb :99 -ac -screen scn 1600x1200x16 &
 
 script:
   - rake
